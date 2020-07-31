@@ -4,18 +4,58 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GraphLab.Viewer"
-        mc:Ignorable="d"
+       
+        mc:Ignorable="d" Background="#102027"
         Title="MainWindow" Height="450" Width="800">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="50"/>
-        </Grid.RowDefinitions>
-        <Canvas Margin="15" x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal">
-            <Button Width="150" Content="New Graph" Click="NewGraphClick"/>
-            <Button Width="150" Content="Find Path" Click="Button_Click"/>
-        </StackPanel>
+    <Window.Resources>
+        
+    </Window.Resources>
+
+    <Grid Margin="10" Background="#101f27">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="320"/>
+        </Grid.ColumnDefinitions>
+        <Canvas Margin="15" x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                Grid.Column="0"/>
+
+        <Grid Grid.Column="1" Background="#62727b">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="50"/>
+            </Grid.RowDefinitions>
+
+            <ItemsControl Grid.Row="0" Margin="5" Padding="5" BorderBrush="Black" BorderThickness="1"
+                          ItemsSource="{Binding GraphProperties.Properties}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ContentPresenter Content="{Binding}" />
+                    </DataTemplate>    
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ListBox Grid.Row="1" Margin="5" Padding="5"  BorderBrush="Black" BorderThickness="1"
+                     ItemsSource="{Binding FoundPaths}" HorizontalContentAlignment="Center"
+                     Background="Transparent" IsSynchronizedWithCurrentItem="True">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock HorizontalAlignment="Center">
+                            <Run Text="{Binding Date, Mode=OneTime}"
+                                 Foreground="Cyan"/>
+                            <Run Text="  Min. path lenght: "/>
+                            <Run Text="{Binding Lenght, Mode=OneTime}" 
+                                 Foreground="Gold"/>
+                        </TextBlock>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5">
+                <Button Width="150" Content="New Graph" Margin="0,0,5,0" Command="{Binding NewGraphCommand}"/>
+                <Button Width="150" Content="Find Path" Command="{Binding FindPathCommand}"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

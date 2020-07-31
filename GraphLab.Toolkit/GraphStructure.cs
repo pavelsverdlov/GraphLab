@@ -40,8 +40,8 @@ namespace GraphLab.Toolkit {
         }
     }
     public struct GraphEccentricity {
-        public int CenterIndx;
-        public int BorderIndx;
+        public GraphVertex Center;
+        public GraphVertex Border;
     }
 
     public class GraphStructure {
@@ -107,7 +107,19 @@ namespace GraphLab.Toolkit {
                 }
             }
 
-            return new GraphEccentricity { BorderIndx = maxRowIndex, CenterIndx = minRowIndex };
+            return new GraphEccentricity { Border = new GraphVertex(maxRowIndex), Center = new GraphVertex(minRowIndex) };
         }
+    }
+
+
+    public class GraphPath {
+        public IReadOnlyList<GraphVertex> Vertices { get; }
+        public float Lenght { get; }
+
+        public GraphPath(List<GraphVertex> path, float lenght) {
+            Vertices = path;
+            Lenght = lenght;
+        }
+
     }
 }

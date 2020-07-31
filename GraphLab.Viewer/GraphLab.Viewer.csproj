@@ -4,6 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\_\WPFLab\WPFLab.csproj" />
     <ProjectReference Include="..\GraphLab.Toolkit\GraphLab.Toolkit.csproj" />
   </ItemGroup>
 
