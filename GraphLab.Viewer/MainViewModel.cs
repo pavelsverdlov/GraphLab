@@ -23,9 +23,14 @@ namespace GraphLab.Viewer {
         [Editable(true)]
         public float Beta { get; set; }
         [Editable(true)]
-        public int Itreations { get; set; }
+        public int ItreationCount { get; set; }
         [Editable(true)]
-        public float Q { get; set; }
+        public float NewPheromoneFactor { get; set; }
+        [Editable(true)]
+        public float DistanceInfluenceValue { get; set; }
+        [Editable(true)]
+        public float EvaporationFactor { get; set; }
+
         public FluentValidation.Results.ValidationResult Validate() => Validate(this);
     }
     class GraphPathItem {
@@ -40,6 +45,12 @@ namespace GraphLab.Viewer {
             this.Eccentricity = ecc;
         }
     }
+    class GraphCreationData : FluentValidation.AbstractValidator<GraphCreationData>, IViewValidator {
+        [Editable(true)]
+        public int VertexCount { get; set; }
+
+        public FluentValidation.Results.ValidationResult Validate() => Validate(this);
+    }
     class MainViewModel : BaseNotify, ISurfaceSupport {
         class GraphNode {
             public Ellipse Visual;
@@ -49,6 +60,7 @@ namespace GraphLab.Viewer {
 
         public ICommand NewGraphCommand { get; }
         public ICommand FindPathCommand { get; }
+        public GroupViewProperty<GraphCreationData> GraphCreationProperties { get; }
         public GroupViewProperty<GraphPropertiesProxy> GraphProperties {
             get => graphProperties;
             set => Update(ref graphProperties, value, nameof(GraphProperties));
@@ -76,6 +88,12 @@ namespace GraphLab.Viewer {
             foundPaths = new ObservableCollection<GraphPathItem>();
             FoundPaths = CollectionViewSource.GetDefaultView(foundPaths);
             FoundPaths.CurrentChanged += FoundPaths_CurrentChanged;
+
+            GraphCreationProperties = new GroupViewProperty<GraphCreationData>(new GraphCreationData { 
+                VertexCount = 20,
+
+            }, "title");
+            GraphCreationProperties.Analyze();
         }
 
         void FoundPaths_CurrentChanged(object? sender, EventArgs e) {
@@ -141,7 +159,8 @@ namespace GraphLab.Viewer {
             var ecc = graph.CalculateEccentricity();
             var searcher = new Toolkit.Search.ACO(graph,
                  mapper.Map<GraphPropertiesProxy, Toolkit.Search.ACOSettings>(graphProperties.Value));
-            var gpath = searcher.FindPath(ecc.Center);
+           // var gpath = searcher.FindPath(ecc.Center);
+            var gpath = searcher.FindPath();
 
             foundPaths.Insert(0,new GraphPathItem(gpath, ecc));
             FoundPaths.MoveCurrentToFirst();
@@ -151,10 +170,13 @@ namespace GraphLab.Viewer {
             foundPaths.Clear();
             canvas.Children.Clear();
 
+            //OnCreateK6Graph();
+            //return;
+
             var width = (int)canvas.ActualWidth;
             var height = (int)canvas.ActualHeight;
 
-            var iterarions = 20;
+            var iterarions = GraphCreationProperties.Value.VertexCount;
             var randomX = new Random();
             var randomY = new Random();
 
@@ -189,7 +211,164 @@ namespace GraphLab.Viewer {
                 }
             }
         }
+        void OnCreateK6Graph() {
+            foundPaths.Clear();
+            canvas.Children.Clear();
 
+            var width = (int)canvas.ActualWidth;
+            var height = (int)canvas.ActualHeight;
+            var halfw = width * 0.5f;
+            var halfh = height * 0.5f;
+
+            var iterarions = 20;
+            var randomX = new Random();
+            var randomY = new Random();
+
+            var added = new HashSet<Vector2>();
+            vgraph.Clear();
+
+            var size = new Size(20, 20);
+            var halfSize = (float)size.Width * 0.5f;
+            
+
+            //top
+            var vertex = new Ellipse {
+                Fill = Brushes.Gray,
+                Width = size.Width,
+                Height = size.Height,
+                Tag = 0
+            };
+            var newpos = new Vector2(halfw, 0);
+            added.Add(newpos);
+            Canvas.SetLeft(vertex, newpos.X);
+            Canvas.SetTop(vertex, newpos.Y);
+
+            canvas.Children.Add(vertex);
+            vgraph.Add(new GraphNode {
+                Visual = vertex,
+                Center = new Vector2(newpos.X + halfSize, newpos.Y + halfSize)
+            });
+            //bottom
+            vertex = new Ellipse {
+                Fill = Brushes.Gray,
+                Width = size.Width,
+                Height = size.Height,
+                Tag = 1
+            };
+            newpos = new Vector2(halfw, height - (float)size.Height);
+            added.Add(newpos);
+            Canvas.SetLeft(vertex, newpos.X);
+            Canvas.SetTop(vertex, newpos.Y);
+
+            canvas.Children.Add(vertex);
+            vgraph.Add(new GraphNode {
+                Visual = vertex,
+                Center = new Vector2(newpos.X + halfSize, newpos.Y + halfSize)
+            });
+            //left
+            vertex = new Ellipse {
+                Fill = Brushes.Gray,
+                Width = size.Width,
+                Height = size.Height,
+                Tag = 1
+            };
+            newpos = new Vector2(halfw * 0.5f, halfh * 0.5f);
+            added.Add(newpos);
+            Canvas.SetLeft(vertex, newpos.X);
+            Canvas.SetTop(vertex, newpos.Y);
+
+            canvas.Children.Add(vertex);
+            vgraph.Add(new GraphNode {
+                Visual = vertex,
+                Center = new Vector2(newpos.X + halfSize, newpos.Y + halfSize)
+            });
+            //
+            vertex = new Ellipse {
+                Fill = Brushes.Gray,
+                Width = size.Width,
+                Height = size.Height,
+                Tag = 1
+            };
+            newpos = new Vector2((float)size.Width, halfh);
+            added.Add(newpos);
+            Canvas.SetLeft(vertex, newpos.X);
+            Canvas.SetTop(vertex, newpos.Y);
+
+            canvas.Children.Add(vertex);
+            vgraph.Add(new GraphNode {
+                Visual = vertex,
+                Center = new Vector2(newpos.X + halfSize, newpos.Y + halfSize)
+            });
+            //
+            vertex = new Ellipse {
+                Fill = Brushes.Gray,
+                Width = size.Width,
+                Height = size.Height,
+                Tag = 1
+            };
+            newpos = new Vector2(halfw * 0.5f, halfh * 1.5f);
+            added.Add(newpos);
+            Canvas.SetLeft(vertex, newpos.X);
+            Canvas.SetTop(vertex, newpos.Y);
+
+            canvas.Children.Add(vertex);
+            vgraph.Add(new GraphNode {
+                Visual = vertex,
+                Center = new Vector2(newpos.X + halfSize, newpos.Y + halfSize)
+            });
+            //right
+            vertex = new Ellipse {
+                Fill = Brushes.Gray,
+                Width = size.Width,
+                Height = size.Height,
+                Tag = 1
+            };
+            newpos = new Vector2(halfw * 1.5f, halfh * 0.5f);
+            added.Add(newpos);
+            Canvas.SetLeft(vertex, newpos.X);
+            Canvas.SetTop(vertex, newpos.Y);
+
+            canvas.Children.Add(vertex);
+            vgraph.Add(new GraphNode {
+                Visual = vertex,
+                Center = new Vector2(newpos.X + halfSize, newpos.Y + halfSize)
+            });
+            //
+            vertex = new Ellipse {
+                Fill = Brushes.Gray,
+                Width = size.Width,
+                Height = size.Height,
+                Tag = 1
+            };
+            newpos = new Vector2(width - (float)size.Width, halfh);
+            added.Add(newpos);
+            Canvas.SetLeft(vertex, newpos.X);
+            Canvas.SetTop(vertex, newpos.Y);
+
+            canvas.Children.Add(vertex);
+            vgraph.Add(new GraphNode {
+                Visual = vertex,
+                Center = new Vector2(newpos.X + halfSize, newpos.Y + halfSize)
+            });
+            //
+            vertex = new Ellipse {
+                Fill = Brushes.Gray,
+                Width = size.Width,
+                Height = size.Height,
+                Tag = 1
+            };
+            newpos = new Vector2(halfw * 1.5f, halfh * 1.5f);
+            added.Add(newpos);
+            Canvas.SetLeft(vertex, newpos.X);
+            Canvas.SetTop(vertex, newpos.Y);
+
+            canvas.Children.Add(vertex);
+            vgraph.Add(new GraphNode {
+                Visual = vertex,
+                Center = new Vector2(newpos.X + halfSize, newpos.Y + halfSize)
+            });
+
+        }
 
     }
 }

@@ -9,12 +9,21 @@
             <ResourceDictionary.MergedDictionaries>
 
                 <ResourceDictionary>
-                    <Style TargetType="TextBlock">
+
+                    <SolidColorBrush x:Key="Background">#102027</SolidColorBrush>
+
+                    <Style TargetType="{x:Type TextBlock}">
                         <Setter Property="Foreground" Value="White"/>
                     </Style>
-                    <Style TargetType="Button">
+
+                    <Style TargetType="{x:Type ToggleButton}">
                         <Setter Property="Background" Value="#37474f"/>
                     </Style>
+
+                    <Style TargetType="{x:Type Button}">
+                        <Setter Property="Background" Value="#37474f"/>
+                    </Style>
+
                 </ResourceDictionary>
 
                 <ResourceDictionary Source="/WPFLab;component/PropertiesEditer/ViewPropertyResources.xaml"/>

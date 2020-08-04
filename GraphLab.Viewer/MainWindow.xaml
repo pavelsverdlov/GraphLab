@@ -5,14 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GraphLab.Viewer"
        
-        mc:Ignorable="d" Background="#102027"
+        mc:Ignorable="d" Background="{StaticResource Background}"
         Title="MainWindow" Height="450" Width="800">
 
     <Window.Resources>
-        
+
     </Window.Resources>
 
-    <Grid Margin="10" Background="#101f27">
+    <Grid Margin="10" Background="{StaticResource Background}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="320"/>
@@ -23,20 +23,43 @@
         <Grid Grid.Column="1" Background="#62727b">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="40"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="50"/>
             </Grid.RowDefinitions>
 
             <ItemsControl Grid.Row="0" Margin="5" Padding="5" BorderBrush="Black" BorderThickness="1"
+                          ItemsSource="{Binding GraphCreationProperties.Properties}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ContentPresenter Content="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ItemsControl Grid.Row="1" Margin="5" Padding="5" BorderBrush="Black" BorderThickness="1"
                           ItemsSource="{Binding GraphProperties.Properties}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <ContentPresenter Content="{Binding}" />
-                    </DataTemplate>    
+                    </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-
-            <ListBox Grid.Row="1" Margin="5" Padding="5"  BorderBrush="Black" BorderThickness="1"
+            
+            <DockPanel Grid.Row="2" HorizontalAlignment="Stretch" Margin="5,0">
+                <ToggleButton Content="Random" Width="110"/>
+                <ToggleButton Width="100">
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center"
+                               Text="Eccentricity Center"/>
+                </ToggleButton>
+                <ToggleButton >
+                    <TextBlock Text="Eccentricity Border" TextWrapping="Wrap" 
+                               TextAlignment="Center"/>
+                </ToggleButton>
+            </DockPanel>
+            
+            <ListBox Grid.Row="3" Margin="5" Padding="5"  BorderBrush="Black" BorderThickness="1"
                      ItemsSource="{Binding FoundPaths}" HorizontalContentAlignment="Center"
                      Background="Transparent" IsSynchronizedWithCurrentItem="True">
                 <ListBox.ItemTemplate>
@@ -52,9 +75,11 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5">
-                <Button Width="150" Content="New Graph" Margin="0,0,5,0" Command="{Binding NewGraphCommand}"/>
-                <Button Width="150" Content="Find Path" Command="{Binding FindPathCommand}"/>
+            <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="5">
+                <Button Width="150" Content="New Graph" Margin="0,0,5,0"
+                        Command="{Binding NewGraphCommand}"/>
+                <Button Width="150" Content="Find Path"
+                        Command="{Binding FindPathCommand}"/>
             </StackPanel>
         </Grid>
     </Grid>

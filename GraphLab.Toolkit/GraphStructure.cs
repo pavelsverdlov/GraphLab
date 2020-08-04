@@ -1,4 +1,5 @@
 ﻿using MathNet.Numerics.LinearAlgebra;
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Text;
 namespace GraphLab.Toolkit {
     //https://codereview.stackexchange.com/questions/131583/generic-graph-implementation-in-c
 
-    public struct GraphVertex : IEquatable<GraphVertex> {
+    public readonly struct GraphVertex : IEquatable<GraphVertex> {
         public readonly bool IsValid;
         public readonly int Index;
 
@@ -27,8 +28,9 @@ namespace GraphLab.Toolkit {
         public override int GetHashCode() {
             return HashCode.Combine(IsValid, Index);
         }
+        public override string ToString() => $"{Index}";
     }
-    public struct GraphEdge {
+    public readonly struct GraphEdge {
         public readonly GraphVertex From;
         public readonly GraphVertex To;
         public readonly float Value;
@@ -38,6 +40,8 @@ namespace GraphLab.Toolkit {
             this.To = graphVertex;
             this.Value = v;
         }
+
+        public override string ToString() => $"[{From}-{To}:{Value}]";
     }
     public struct GraphEccentricity {
         public GraphVertex Center;
@@ -74,12 +78,26 @@ namespace GraphLab.Toolkit {
             return new GraphVertex(v);
         }
 
+        public GraphEdge[] GetEdges() {
+            var endges = new List<GraphEdge>();
+            for (var row = 0; row < adjacencyMatrix.RowCount; row++) {
+                for (var col = 0; col < adjacencyMatrix.ColumnCount; col++) {
+                    var r = adjacencyMatrix[row, col];
+                    endges.Add(new GraphEdge(new GraphVertex(row),new GraphVertex(col),r));
+                }
+            }
+            return endges.ToArray();
+        }
+
         public IEnumerable<GraphEdge> GetNeighbors(GraphVertex v0) {
             var neighbors = new List<GraphEdge>();
-            for (var i =0; i < adjacencyMatrix.ColumnCount; ++i) {
-                neighbors.Add(new GraphEdge(v0, new GraphVertex(i), adjacencyMatrix[v0.Index,i]));
+            for (var i = 0; i < adjacencyMatrix.ColumnCount; ++i) {
+                neighbors.Add(new GraphEdge(v0, new GraphVertex(i), adjacencyMatrix[v0.Index, i]));
             }
             return neighbors;
+        }
+        public GraphEdge GetEdge(GraphVertex v0, GraphVertex v1) {
+            return new GraphEdge(v0, new GraphVertex(v1.Index), adjacencyMatrix[v0.Index, v1.Index]);
         }
 
         public GraphEccentricity CalculateEccentricity() {
