@@ -1,4 +1,5 @@
 ﻿using MathNet.Numerics.LinearAlgebra;
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,15 +7,29 @@ using System.Linq;
 using System.Text;
 
 namespace GraphLab.Toolkit.Search {
-
+    public enum ACOTypes {
+        /// <summary>
+        /// Ant System
+        /// </summary>
+        AS,
+        /// <summary>
+        /// Max-Min Ant System
+        /// </summary>
+        MMAS,
+        /// <summary>
+        /// Ant Colony System
+        /// </summary>
+        ACS,
+    }
     public struct ACOSettings {
         public static ACOSettings Default() => new ACOSettings {
             Alfa = 1,
             Beta = 2f,
-            ItreationCount = 1000,
-            NewFactor = 1,
+            ItreationCount = 100_000,
+            NewPheromoneFactor = 1,
             DistanceInfluenceValue = 1f,
-            EvaporationFactor = 0.1f,
+            EvaporationFactor = 0.7f,
+            Type = ACOTypes.AS,
         };
         // >=0
         /// <summary>
@@ -37,14 +52,14 @@ namespace GraphLab.Toolkit.Search {
         /// constant uses for calculation new pheromones factor (Q/L)
         /// L - path lenght
         /// </summary>
-        public float NewFactor { get; set; }
+        public float NewPheromoneFactor { get; set; }
         /// <summary>
         /// Transition desirability coefficient depends on curve length,
         /// typically DistanceInfluence/Lxy, where L is the length
         /// </summary>
         public float DistanceInfluenceValue { get; set; }
         public float EvaporationFactor { get; set; }
-
+        public ACOTypes Type { get; set; }
     }
 
     /// <summary>
@@ -81,11 +96,9 @@ namespace GraphLab.Toolkit.Search {
             public override string ToString() => $"[{IndexFrom}-{IndexTo}]";
         }
 
-        readonly Dictionary<Edge, float> pheromone = new Dictionary<Edge, float>();
         readonly GraphStructure graph;
         readonly ACOSettings settings;
-        Matrix<float> pheromones;
-
+        
         public ACO(GraphStructure graph, ACOSettings settings) {
             this.graph = graph;
             this.settings = settings;
@@ -97,13 +110,26 @@ namespace GraphLab.Toolkit.Search {
             var randomStart = new Random();
             return FindPath(g => g.GetVertex(randomStart.Next(0, g.V)));
         }
+
         GraphPath FindPath(Func<GraphStructure, GraphVertex> getStartVertex) {
-            var paths = new SortedList<float, List<GraphVertex>>();
+            List<GraphVertex> shortestPath= new List<GraphVertex>();
             var minPathLenght = float.MaxValue;
+            //use some magnification because pheromones decrease to extra small value due to evaporation
+            var magnificationFactor = settings.ItreationCount;
 
             try {
-                pheromones = Matrix<float>.Build.Dense(graph.V, graph.V, 0f);
+                var pheromones = new float[graph.V, graph.V];
                 var endges = graph.GetEdges();
+
+                //fill pheromones by coef of lenght 
+                for (int i = 0; i < endges.Length; i++) {
+                    var edge = endges[i];
+                    var Lij = edge.Value;
+                    pheromones[edge.From.Index, edge.To.Index] =    
+                       //magnificationFactor; // Max-min Ant System
+                     (settings.DistanceInfluenceValue / Lij) * magnificationFactor;
+                }
+
                 var pathVertices = new List<GraphVertex>();
                 var pathEndges = new HashSet<Edge>();
                 var processedVertices = new HashSet<GraphVertex>();
@@ -112,7 +138,7 @@ namespace GraphLab.Toolkit.Search {
 
                 var iterations = settings.ItreationCount;
 
-                while (iterations-- > 1) {
+                while (iterations --> 1) {
                     pathLenght = 0f;
                     pathVertices = new List<GraphVertex>();
                     processedVertices.Clear();
@@ -133,12 +159,16 @@ namespace GraphLab.Toolkit.Search {
                         float SumiN = 0f;
                         var neighbors = graph.GetNeighbors(i);
                         foreach (var edge in neighbors) {
-                            if (!processedVertices.Contains(edge.To)) {
+                            if (!processedVertices.Contains(edge.To)) { 
                                 var Lij = edge.Value;
                                 var nij = CaclulateSpecialScalar(Lij);
-                                var rij = GetEdgePheromoneOrDefault(edge);
+                                var rij = pheromones[edge.From.Index, edge.To.Index];
                                 SumiN += (float)(Math.Pow(nij, settings.Beta) * Math.Pow(rij, settings.Alfa));
                             }
+                        }
+
+                        if (SumiN == 0) {
+                            throw new Exception("SumiN = 0, no edge to pass"); 
                         }
 
                         //Ant Colony System optimization approach
@@ -152,11 +182,11 @@ namespace GraphLab.Toolkit.Search {
                                 //calculate transition probability
                                 //Lij - distance btw i-j
                                 //rij - ant feromons btw i-j 
-                                //Sumij - summ each curves btw i-(N) N each vertices connected to i
+                                //SumiN - summ each curves btw i-(N) N all avalible vertices connected to i
                                 var Lij = edge.Value;
                                 var nij = CaclulateSpecialScalar(Lij);
-                                var rij = GetEdgePheromoneOrDefault(edge);
-                                var Pij = 
+                                var rij = pheromones[edge.From.Index, edge.To.Index];
+                                var Pij =
                                     ((MathF.Pow(nij, settings.Beta) * MathF.Pow(rij, settings.Alfa)) / SumiN)
                                     * 100f;// multiply by 100 to make range 0-100
                                 checkSumm += Pij;
@@ -164,90 +194,71 @@ namespace GraphLab.Toolkit.Search {
                             }
                         }
 
-                        if(Math.Abs(checkSumm - 100f) > 0.001f) {
+                        if (MathF.Abs(checkSumm - 100f) > 0.01f) {
                             throw new Exception("Sum of all chances must be 100%");
                         }
 
                         //generate random value 0 - 100%
-                        var chance = random.Next(0, 100);
+                        var hit = random.Next(0, 100);
                         var prev = 0f;
-                        var usingEdge = new Edge { IndexFrom = next.Index};
+                        var usingEdge = new Edge { IndexFrom = next.Index };
                         next = default;
-                        foreach (var val in PiN) {
+                        foreach (var chance in PiN) {
                             //search result which hits in range
-                            if (prev <= chance && chance <= (prev + val.Item1)) {
-                                usingEdge.IndexTo = val.Item2.To.Index;
-                                next = val.Item2.To;
-                                pathLenght += val.Item2.Value;
+                            if (prev <= hit && hit <= (prev + chance.Item1)) {
+                                usingEdge.IndexTo = chance.Item2.To.Index;
+                                pathEndges.Add(usingEdge);//keep passed edges
+
+                                next = chance.Item2.To;
+                                pathLenght += chance.Item2.Value;
                                 break;
                             }
-                            prev += val.Item1;
-                        }
-
-                        pathEndges.Add(usingEdge);                        
-                    }
-                    if(pathLenght == 0) {
-                        throw new Exception("Path length can be 0.");
+                            prev += chance.Item1;
+                        }                       
                     }
 
-                    if (paths.ContainsKey(pathLenght) || pathVertices.Count < graph.V) {
-                        iterations++;//increase because current iteration is waste
-                        continue;
-                    } else {
-                        paths.Add(pathLenght, pathVertices);
+                    if (pathLenght == 0 || pathVertices.Count < graph.V) {
+                        throw new Exception("Invalid path, lenght is zero or not all vertices were passed.");
                     }
-
-                    //update pheromones only if path is the shortest 
+                   
                     if (minPathLenght > pathLenght) {
                         minPathLenght = pathLenght;
+                        shortestPath = pathVertices;
 
-                        
-                    }
-                    //pheromone depends on the length of the chosen path:
-                    //the shorter the path, the higher the amount of added pheromone
-                    var dr = settings.NewFactor / pathLenght;
+                        //pheromone depends on the length of the chosen path:
+                        //the shorter the path, the higher the amount of added pheromone
+                        var dr = (settings.NewPheromoneFactor / pathLenght);// * magnificationFactor;
 
-                    //pheromone evaporation coefficient
-                    var p = settings.EvaporationFactor;
+                        //pheromone evaporation coefficient
+                        var p = settings.EvaporationFactor;
 
-                    //loop over all edges
-                    for (int i = 0; i < endges.Length; i++) {
-                        var edge = endges[i];
-                        var key = new Edge(edge.From.Index, edge.To.Index);
+                        //loop over all edges
+                        for (int i = 0; i < endges.Length; i++) {
+                            var edge = endges[i];
+                            var key = new Edge(edge.From.Index, edge.To.Index);
 
-                        //new feromons rate
-                        var drij = 0f;//only evaporation will effect on pheromone
-                        if (pathEndges.Contains(key)) {
-                            drij = dr;
-                        }
+                            //new feromons rate
+                            var drij = pathEndges.Contains(key) ?
+                                dr  //if edge was used, apply new feromon value
+                                : 0f;//only evaporation will effect on pheromone
 
-                        if (pheromone.ContainsKey(key)) {
-                            var rij = pheromone[key];
-                            //Pheromone update
-                            pheromone[key] =
+                            var rij = pheromones[key.IndexFrom, key.IndexTo];
+
+                            //update pheromones 
+                            pheromones[key.IndexFrom, key.IndexTo] =
                                 (1f - p) * rij // evaporation
                                 + drij; // increase value of feromons based on found path
-                        } else if (pathEndges.Contains(key)) {
-                            //first time of passing this edge, no evaporation
-                            pheromone[key] = drij;
+
                         }
                     }
                 }
             } catch (Exception ex) {
                 ex.ToString();
             }
-            return new GraphPath(paths[minPathLenght], minPathLenght);
+            return new GraphPath(shortestPath, minPathLenght);
         }
 
-        float GetEdgePheromoneOrDefault(GraphEdge edge) {
-            var key = new Edge(edge.From.Index, edge.To.Index);
-            if (!pheromone.ContainsKey(key)) {
-                ////if ant didn't traverse through this vertex, so use default function to calculate feromon
-                return CaclulateSpecialScalar(edge.Value);
-                //return 0.0001f;//TODO
-            }
-            return pheromone[key];
-        }
+       
         /// <summary>
         /// just a help fuction to calculate scalar depending on length
         /// calls as 'a priori knowledge'
@@ -257,7 +268,7 @@ namespace GraphLab.Toolkit.Search {
         float CaclulateSpecialScalar(float Lij) {
             //Lij - distance btw i-j
 
-            return (settings.DistanceInfluenceValue / Lij);
+            return settings.DistanceInfluenceValue / Lij;
         }
     }
 }

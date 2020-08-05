@@ -61,6 +61,9 @@ namespace GraphLab.Toolkit {
         readonly Matrix<float> adjacencyMatrix;
         readonly List<GraphVertex> vertices;
         public GraphStructure(int vertexCount) {
+            if(vertexCount <= 0) {
+                throw new ArgumentException("vertexCount must be more than 0.");
+            }
             adjacencyMatrix = Matrix<float>.Build.Dense(vertexCount, vertexCount, 0f);
             vertices = new List<GraphVertex>();
             V = vertexCount;

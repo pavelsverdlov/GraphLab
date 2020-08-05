@@ -11,18 +11,14 @@
                 <ResourceDictionary>
 
                     <SolidColorBrush x:Key="Background">#102027</SolidColorBrush>
+                    <SolidColorBrush x:Key="PanelBackground">#62727b</SolidColorBrush>
+                    <SolidColorBrush x:Key="ButtonBackground">#37474f</SolidColorBrush>
 
                     <Style TargetType="{x:Type TextBlock}">
                         <Setter Property="Foreground" Value="White"/>
                     </Style>
 
-                    <Style TargetType="{x:Type ToggleButton}">
-                        <Setter Property="Background" Value="#37474f"/>
-                    </Style>
-
-                    <Style TargetType="{x:Type Button}">
-                        <Setter Property="Background" Value="#37474f"/>
-                    </Style>
+                    
 
                 </ResourceDictionary>
 
