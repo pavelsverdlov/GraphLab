@@ -1,10 +1,14 @@
-﻿using GraphLab.Toolkit;
+﻿using FluentValidation;
+
+using GraphLab.Toolkit;
+using GraphLab.Toolkit.Search;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,30 +20,54 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using WPFLab;
 using WPFLab.MVVM;
-using WPFLab.PropertiesEditer;
+using WPFLab.PropertyGrid;
 
 namespace GraphLab.Viewer {
-    class GraphPropertiesProxy : FluentValidation.AbstractValidator<GraphPropertiesProxy>, IViewValidator {
-        [Display]
-        [Editable(true)]
-        public float Alfa { get; set; }
-        [Display]
-        [Editable(true)]
-        public float Beta { get; set; }
-        [Display]
-        [Editable(true)]
-        public int ItreationCount { get; set; }
-        [Display]
-        [Editable(true)]
-        public float NewPheromoneFactor { get; set; }
-        [Display]
-        [Editable(true)]
-        public float DistanceInfluenceValue { get; set; }
-        [Display]
-        [Editable(true)]
-        public float EvaporationFactor { get; set; }
+    class GraphPropertiesProxy : ViewModelProxy<GraphPropertiesProxy>, IViewModelProxy {
+        private ACOTypes type;
 
-        public FluentValidation.Results.ValidationResult Validate() => Validate(this);
+        [Visible]
+        [Display]
+        [ReadOnly(false)]
+        public float Alfa { get; set; }
+        [Visible]
+        [Display]
+        public float Beta { get; set; }
+        [Visible]
+        [Display]
+        public int ItreationCount { get; set; }
+        [Visible]
+        [Display(Name = "Distance influence on pheromone")]
+        public float DistanceInfluenceOnPheromoneFactor { get; set; }
+        [Visible]
+        [Display(Name = "Distance influence")]
+        public float DistanceInfluenceFactor { get; set; }
+        [Visible]
+        [Display(Name = "Evaporation")]
+        public float EvaporationFactor { get; set; }
+        [Visible]
+        [Display]
+        public ACOTypes Type { 
+            get => type;
+            set {
+                type = value;
+            }
+        }
+
+        public GraphPropertiesProxy() {
+            RuleFor(x => x.EvaporationFactor)
+                .InclusiveBetween(0f, 1f);
+            RuleFor(x => x.DistanceInfluenceFactor)
+                .GreaterThan(0f);
+            RuleFor(x => x.DistanceInfluenceOnPheromoneFactor)
+                .GreaterThan(0f);
+            RuleFor(x => x.Alfa)
+               .GreaterThan(0f);
+            RuleFor(x => x.Beta)
+               .GreaterThan(0f);
+        }
+
+        protected override FluentValidation.Results.ValidationResult OnValidate() => Validate(this);
     }
     class GraphPathItem {
         public readonly GraphPath Path;
@@ -48,19 +76,28 @@ namespace GraphLab.Viewer {
         public float Lenght => Path.Lenght;
         public string Date { get; }
         public int Iterations { get; }
-        public GraphPathItem(GraphPath path, GraphEccentricity ecc, int iterations, TimeSpan time) {
+        public ACOTypes Type { get; }
+
+        public GraphPathItem(GraphPath path, GraphEccentricity ecc, int iterations, ACOTypes type, TimeSpan time) {
             this.Path = path;
             Date = time.ToString();
             this.Eccentricity = ecc;
             Iterations = iterations;
+            Type = type;
         }
     }
-    class GraphCreationData : FluentValidation.AbstractValidator<GraphCreationData>, IViewValidator {
-        [Display]
+    class GraphCreationData : ViewModelProxy<GraphCreationData> {
+        [Visible]
+        [Display(Name ="Vertex count")]
         [Editable(true)]
         public int VertexCount { get; set; }
 
-        public FluentValidation.Results.ValidationResult Validate() => Validate(this);
+        public GraphCreationData() {
+            RuleFor(x => x.VertexCount)
+              .GreaterThan(1);
+        }
+
+        protected override FluentValidation.Results.ValidationResult OnValidate() => Validate(this);
     }
     class MainViewModel : BaseNotify, ISurfaceSupport {
         class GraphNode {
@@ -68,11 +105,22 @@ namespace GraphLab.Viewer {
             public Vector2 Center;
         }
 
-        public bool UseRandom {
-            get => useRandom;
+        public bool UseAllVertices {
+            get => useAllVertices;
             set {
-                Update(ref useRandom, value);
-                useEccentricityBorder = useEccentricityCenter = !value;
+                Update(ref useAllVertices, value);
+                useRandomVertices = useEccentricityBorder = useEccentricityCenter = !value;
+                SetPropertyChanged(nameof(UseRandomVertices));
+                SetPropertyChanged(nameof(UseEccentricityCenter));
+                SetPropertyChanged(nameof(UseEccentricityBorder));
+            }
+        }
+        public bool UseRandomVertices {
+            get => useRandomVertices;
+            set {
+                Update(ref useRandomVertices, value);
+                useAllVertices = useEccentricityBorder = useEccentricityCenter = !value;
+                SetPropertyChanged(nameof(UseAllVertices));
                 SetPropertyChanged(nameof(UseEccentricityCenter));
                 SetPropertyChanged(nameof(UseEccentricityBorder));
             }
@@ -81,53 +129,67 @@ namespace GraphLab.Viewer {
             get => useEccentricityCenter;
             set {
                 Update(ref useEccentricityCenter, value);
-                useEccentricityBorder = useRandom = !value;
+                useRandomVertices = useEccentricityBorder = useAllVertices = !value;
+                SetPropertyChanged(nameof(UseRandomVertices));
                 SetPropertyChanged(nameof(UseEccentricityBorder));
-                SetPropertyChanged(nameof(UseRandom));
+                SetPropertyChanged(nameof(UseAllVertices));
             }
         }
         public bool UseEccentricityBorder {
             get => useEccentricityBorder;
             set {
                 Update(ref useEccentricityBorder, value);
-                useEccentricityCenter = useRandom = !value;
+                useRandomVertices = useEccentricityCenter = useAllVertices = !value;
+                SetPropertyChanged(nameof(UseRandomVertices));
                 SetPropertyChanged(nameof(UseEccentricityCenter));
-                SetPropertyChanged(nameof(UseRandom));
+                SetPropertyChanged(nameof(UseAllVertices));
             }
         }
 
         public Visibility ProgressBarVisibility {
             get => progressBarVisibility;
-            set => Update(ref progressBarVisibility, value); 
+            set => Update(ref progressBarVisibility, value);
         }
 
         public ICommand NewGraphCommand { get; }
         public ICommand FindPathCommand { get; }
-        public GroupViewProperty<GraphCreationData> GraphCreationProperties { get; }
-        public GroupViewProperty<GraphPropertiesProxy> GraphProperties {
+        public GroupViewModelProperties<GraphCreationData> GraphCreationProperties { get; }
+        public GroupViewModelProperties<GraphPropertiesProxy> GraphProperties {
             get => graphProperties;
             set => Update(ref graphProperties, value, nameof(GraphProperties));
         }
         public ICollectionView FoundPaths { get; }
+        public bool IsAllParamsValid { 
+            get => isAllParamsValid;
+            set => Update(ref isAllParamsValid, value);
+        }
+        public bool AllowCreateGraph {
+            get => allowCreateGraph;
+            set => Update(ref allowCreateGraph, value);
+        }
+        
 
-        Canvas canvas;
-        GroupViewProperty<GraphPropertiesProxy> graphProperties;
+        Canvas? canvas;
+        GroupViewModelProperties<GraphPropertiesProxy> graphProperties;
 
-        bool useRandom;
+        bool useAllVertices;
+        bool useRandomVertices;
         bool useEccentricityCenter;
         bool useEccentricityBorder;
-        private Visibility progressBarVisibility;
+        Visibility progressBarVisibility;
+        bool isAllParamsValid;
+        bool allowCreateGraph;
         readonly List<GraphNode> vgraph;
-        readonly List<Line> lines;
+        readonly List<Shape> lines;
         readonly GraphLabMapperService mapper;
         readonly ObservableCollection<GraphPathItem> foundPaths;
         public MainViewModel(GraphLabMapperService mapper) {
             vgraph = new List<GraphNode>();
-            lines = new List<Line>();
+            lines = new List<Shape>();
             NewGraphCommand = new WpfActionCommand(OnNewGraph);
             FindPathCommand = new WpfActionCommand(OnFindPath);
             this.mapper = mapper;
-            graphProperties = new GroupViewProperty<GraphPropertiesProxy>(
+            graphProperties = new GroupViewModelProperties<GraphPropertiesProxy>(
                 mapper.Map<Toolkit.Search.ACOSettings, GraphPropertiesProxy>(Toolkit.Search.ACOSettings.Default()),
                 "title");
             graphProperties.Analyze();
@@ -136,13 +198,24 @@ namespace GraphLab.Viewer {
             FoundPaths = CollectionViewSource.GetDefaultView(foundPaths);
             FoundPaths.CurrentChanged += FoundPaths_CurrentChanged;
 
-            GraphCreationProperties = new GroupViewProperty<GraphCreationData>(new GraphCreationData {
+            GraphCreationProperties = new GroupViewModelProperties<GraphCreationData>(new GraphCreationData {
                 VertexCount = 20,
-
             }, "title");
             GraphCreationProperties.Analyze();
-            useRandom = true;
+            useRandomVertices = true;
             ProgressBarVisibility = Visibility.Collapsed;
+
+            graphProperties.Value.ValidationStatusChanged += GraphPropertiesValidationStatusChanged;
+            GraphCreationProperties.Value.ValidationStatusChanged += CreationPropertiesValidationStatusChanged;
+
+            AllowCreateGraph = true;
+        }
+
+        void GraphPropertiesValidationStatusChanged(bool isValid) {
+            IsAllParamsValid = isValid && vgraph.Any();
+        }
+        void CreationPropertiesValidationStatusChanged(bool isValid) {
+            AllowCreateGraph = isValid;
         }
 
         void FoundPaths_CurrentChanged(object? sender, EventArgs e) {
@@ -156,24 +229,45 @@ namespace GraphLab.Viewer {
 
                 var prev = vgraph[path[0].Index];
                 for (var i = 1; i < path.Count; i++) {
-                    var c = vgraph[path[i].Index];
+                    var next = vgraph[path[i].Index];
 
                     var line = new Line {
                         Stroke = Brushes.Green,
                         StrokeThickness = 2,
                     };
-
-
                     line.X1 = prev.Center.X;
                     line.Y1 = prev.Center.Y;
 
-                    line.X2 = c.Center.X;
-                    line.Y2 = c.Center.Y;
+                    line.X2 = next.Center.X;
+                    line.Y2 = next.Center.Y;
+
+                    //arrow
+                    var bow = new Point(next.Center.X, next.Center.Y);
+                    var vector = new Point(prev.Center.X, prev.Center.Y) - bow;
+                    vector *= .3f;
+                    if (vector.Length > 30f) {
+                        vector.Normalize();
+                        vector *= 30f;
+                    }
+                    var rotate = new Matrix();
+                    rotate.RotateAt(20, bow.X, bow.Y);
+                    var points = new PointCollection();
+                    points.Add(bow);
+                    points.Add(bow + rotate.Transform(vector));
+                    rotate.Invert();
+                    points.Add(bow + rotate.Transform(vector));
+                    var arrow = new Polygon {
+                        Fill = Brushes.Green,
+                        Points = points,
+                    };
 
                     canvas.Children.Add(line);
                     lines.Add(line);
 
-                    prev = c;
+                    canvas.Children.Add(arrow);
+                    lines.Add(arrow);
+
+                    prev = next;
                 }
             }
         }
@@ -206,22 +300,24 @@ namespace GraphLab.Viewer {
 
             var ecc = graph.CalculateEccentricity();
             var settings = mapper.Map<GraphPropertiesProxy, Toolkit.Search.ACOSettings>(graphProperties.Value);
-            var searcher = new Toolkit.Search.ACO(graph, settings);
+            var searcher = GraphSearcher.CreateACO(graph, settings);
 
             GraphPath gpath = null;
             ProgressBarVisibility = Visibility.Visible;
             var sw = new Stopwatch();
             sw.Start();
             await Task.Run(() => {
-                if (UseRandom) {
-                    gpath = searcher.FindPath();
+                if (UseAllVertices) {
+                    gpath = searcher.FindPath(StartVertexOptions.AllVertices);
+                } else if (UseRandomVertices) {
+                    gpath = searcher.FindPath(StartVertexOptions.RandomVertex);
                 } else {
                     gpath = searcher.FindPath(UseEccentricityCenter ? ecc.Center : ecc.Border);
                 }
             });
             sw.Stop();
             ProgressBarVisibility = Visibility.Collapsed;
-            foundPaths.Insert(0, new GraphPathItem(gpath, ecc, settings.ItreationCount, sw.Elapsed));
+            foundPaths.Insert(0, new GraphPathItem(gpath, ecc, settings.ItreationCount, settings.Type, sw.Elapsed));
             FoundPaths.MoveCurrentToFirst();
         }
 
@@ -269,6 +365,7 @@ namespace GraphLab.Viewer {
                     continue;
                 }
             }
+            graphProperties.Validate();
         }
         void OnCreateK6Graph() {
             foundPaths.Clear();

@@ -31,6 +31,7 @@ namespace GraphLab.Toolkit {
         public override string ToString() => $"{Index}";
     }
     public readonly struct GraphEdge {
+        public readonly bool IsValid;
         public readonly GraphVertex From;
         public readonly GraphVertex To;
         public readonly float Value;
@@ -39,6 +40,7 @@ namespace GraphLab.Toolkit {
             this.From = v0;
             this.To = graphVertex;
             this.Value = v;
+            IsValid = true;
         }
 
         public override string ToString() => $"[{From}-{To}:{Value}]";
@@ -50,23 +52,17 @@ namespace GraphLab.Toolkit {
 
     public class GraphStructure {
         /// <summary>
-        /// V a set of vertices (also called nodes or points);
+        /// Set of vertices (also called nodes or points);
         /// </summary>
-        public int V { get; }
-        /// <summary>
-        /// E a set of edges (also called directed edges, directed links, directed lines, arrows or arcs);
-        /// </summary>
-        public int E { get; }
+        public int Count { get; }
 
         readonly Matrix<float> adjacencyMatrix;
-        readonly List<GraphVertex> vertices;
         public GraphStructure(int vertexCount) {
             if(vertexCount <= 0) {
                 throw new ArgumentException("vertexCount must be more than 0.");
             }
             adjacencyMatrix = Matrix<float>.Build.Dense(vertexCount, vertexCount, 0f);
-            vertices = new List<GraphVertex>();
-            V = vertexCount;
+            Count = vertexCount;
         }
 
         public void AddEdge(int v0, int v1, float val) {
@@ -127,7 +123,7 @@ namespace GraphLab.Toolkit {
                     minRowIndex = row;
                 }
             }
-
+            
             return new GraphEccentricity { Border = new GraphVertex(maxRowIndex), Center = new GraphVertex(minRowIndex) };
         }
     }

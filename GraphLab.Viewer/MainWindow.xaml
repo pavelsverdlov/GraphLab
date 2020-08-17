@@ -4,29 +4,23 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GraphLab.Viewer"
-       
+        xmlns:wpf="clr-namespace:WPFLab.PropertyGrid;assembly=WPFLab"
         mc:Ignorable="d" Background="{StaticResource Background}"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Graph Lab Viewer" Height="550" Width="800">
     <Window.Resources>
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-        <Style TargetType="{x:Type ToggleButton}">
-            <Setter Property="Background" Value="{StaticResource ButtonBackground}"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-        <Style TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="{StaticResource ButtonBackground}"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-        <Style TargetType="{x:Type ProgressBar}">
-            <Setter Property="Background" Value="{StaticResource PanelBackground}"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary>
+                    
+                </ResourceDictionary>
+                <ResourceDictionary Source="/WPFLab;component/PropertyGrid/ViewPropertyResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Window.Resources>
     <Grid Margin="10">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="320"/>
+            <ColumnDefinition Width="325"/>
         </Grid.ColumnDefinitions>
         <Canvas Margin="15" x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                 Grid.Column="0"/>
@@ -35,7 +29,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="40"/>
+                <RowDefinition Height="60"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="50"/>
             </Grid.RowDefinitions>
@@ -58,26 +52,30 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <DockPanel Grid.Row="2" HorizontalAlignment="Stretch" Margin="5,0">
-                <ToggleButton Content="Random" Width="110" 
-                              IsChecked="{Binding UseRandom}"
-                              />
-                <ToggleButton Width="100" 
-                              
-                              IsChecked="{Binding UseEccentricityCenter}">
-                    <TextBlock TextWrapping="Wrap" TextAlignment="Center"
+            <StackPanel Grid.Row="2" Orientation="Vertical">
+                <TextBlock Margin="10,0,0,0" Text="Start vertex" Foreground="Black"/>
+                <Rectangle Height="1" Fill="Black" Margin="5,0,5,5" />
+                <DockPanel  HorizontalAlignment="Stretch" Margin="5,0">
+                    <ToggleButton Content="All Vertices" Width="75"
+                              IsChecked="{Binding UseAllVertices}"/>
+                    <ToggleButton Content="Random" Width="75" Margin="2,0"
+                              IsChecked="{Binding UseRandomVertices}"/>
+                    <ToggleButton Width="75" IsChecked="{Binding UseEccentricityCenter}">
+                        <TextBlock TextWrapping="Wrap" TextAlignment="Center"
                                >
                         <Run Text="Eccentricity Center"/>
-                    </TextBlock>
-                </ToggleButton>
-                <ToggleButton IsChecked="{Binding UseEccentricityBorder}"
-                              >
-                    <TextBlock TextWrapping="Wrap" 
+                        </TextBlock>
+                    </ToggleButton>
+                    <ToggleButton IsChecked="{Binding UseEccentricityBorder}"
+                              Width="75">
+                        <TextBlock TextWrapping="Wrap" 
                                TextAlignment="Center">
                         <Run Text="Eccentricity Border"/>
-                    </TextBlock>
-                </ToggleButton>
-            </DockPanel>
+                        </TextBlock>
+                    </ToggleButton>
+                </DockPanel>
+            </StackPanel>
+            
 
             <ListBox Grid.Row="3" Margin="5" Padding="5"  BorderBrush="Black" BorderThickness="1"
                      ItemsSource="{Binding FoundPaths}" HorizontalContentAlignment="Left"
@@ -86,12 +84,16 @@
                     <DataTemplate>
                         <TextBlock HorizontalAlignment="Left">
                             <Run Text="{Binding Date, Mode=OneTime}"
-                                 Foreground="Cyan"/>
+                                 Foreground="DarkMagenta"/>
+                             <Run Text=" - "/>
+                            <Run Text="{Binding Type, Mode=OneTime}"
+                                 Foreground="DarkGreen"/>
                             <Run Text=" - "/>
-                            <Run Text="{Binding Iterations, Mode=OneTime}"/>
+                            <Run Text="{Binding Iterations, Mode=OneTime}"
+                                 Foreground="DarkViolet"/>
                             <Run Text=" - "/>
                             <Run Text="{Binding Lenght, Mode=OneTime}" 
-                                 Foreground="Gold"/>
+                                 Foreground="DarkBlue"/>
                         </TextBlock>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -99,9 +101,10 @@
 
             <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="5">
                 <Button Width="150" Content="New Graph" Margin="0,0,10,0"
-                        Command="{Binding NewGraphCommand}"/>
-                <Button Width="150" Content="Find Path" 
-                        Command="{Binding FindPathCommand}"/>                
+                        IsEnabled="{Binding AllowCreateGraph}"
+                        Command="{Binding NewGraphCommand}" />
+                <Button Width="150" Content="Find Path" IsEnabled="{Binding IsAllParamsValid}"
+                        Command="{Binding FindPathCommand}"/>
             </StackPanel>
             <ProgressBar Grid.Row="4" IsIndeterminate="True" Margin="5"
                          Visibility="{Binding ProgressBarVisibility}" />
