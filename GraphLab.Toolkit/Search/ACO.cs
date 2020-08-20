@@ -21,7 +21,7 @@ namespace GraphLab.Toolkit.Search {
         public static ACOSettings Default() => new ACOSettings {
             Alfa = 1,
             Beta = 2f,
-            ItreationCount = 100_000,
+            IterationCount = 10_000,
             DistanceInfluenceOnPheromoneFactor = 1,
             DistanceInfluenceFactor = 1f,
             EvaporationFactor = 0.7f,
@@ -43,7 +43,7 @@ namespace GraphLab.Toolkit.Search {
         /// Beta = 0 - igonre curve lenght, focus only on pheromones
         /// </remarks>
         public float Beta { get; set; }
-        public int ItreationCount { get; set; }
+        public int IterationCount { get; set; }
         /// <summary>
         /// constant uses for calculation new pheromones factor (Q/L)
         /// L - path lenght
@@ -107,7 +107,7 @@ namespace GraphLab.Toolkit.Search {
             edges = graph.GetEdges();
 
             //in case big EvaporationFactor, use some magnification because pheromones decrease to extra small value due to evaporation
-            magnificationFactor = settings.ItreationCount;
+            magnificationFactor = settings.IterationCount;
             startVertexRandom = new Random((int)DateTime.Now.Ticks);
         }
 
@@ -154,7 +154,7 @@ namespace GraphLab.Toolkit.Search {
             var processedVertices = new HashSet<GraphVertex>();
             var random = new Random();
 
-            var iterations = settings.ItreationCount;
+            var iterations = settings.IterationCount;
             //pheromone evaporation coefficient
             var p = settings.EvaporationFactor;
 

@@ -34,8 +34,8 @@ namespace GraphLab.Viewer {
         [Display]
         public float Beta { get; set; }
         [Visible]
-        [Display]
-        public int ItreationCount { get; set; }
+        [Display(Name = "Iterations")]
+        public int IterationCount { get; set; }
         [Visible]
         [Display(Name = "Distance influence on pheromone")]
         public float DistanceInfluenceOnPheromoneFactor { get; set; }
@@ -46,7 +46,7 @@ namespace GraphLab.Viewer {
         [Display(Name = "Evaporation")]
         public float EvaporationFactor { get; set; }
         [Visible]
-        [Display]
+        [Display(Name = "ACO type")]
         public ACOTypes Type { 
             get => type;
             set {
@@ -317,7 +317,7 @@ namespace GraphLab.Viewer {
             });
             sw.Stop();
             ProgressBarVisibility = Visibility.Collapsed;
-            foundPaths.Insert(0, new GraphPathItem(gpath, ecc, settings.ItreationCount, settings.Type, sw.Elapsed));
+            foundPaths.Insert(0, new GraphPathItem(gpath, ecc, settings.IterationCount, settings.Type, sw.Elapsed));
             FoundPaths.MoveCurrentToFirst();
         }
 
